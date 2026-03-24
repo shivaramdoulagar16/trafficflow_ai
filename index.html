@@ -1,0 +1,1789 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowSync – Dynamic Multi-Signal Traffic Optimization Framework</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.22), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,0.14), transparent 24%),
+        linear-gradient(135deg, #111827 0%, #1F2937 45%, #0b1220 100%);
+      color: #e5eefb;
+      font-family: "Manrope", sans-serif;
+      overflow: hidden;
+    }
+    .brand-font { font-family: "Rajdhani", sans-serif; }
+    .glass {
+      background: rgba(17, 24, 39, 0.72);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30);
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(30,41,59,0.86), rgba(15,23,42,0.78));
+      border: 1px solid rgba(96, 165, 250, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 16px 36px rgba(2,6,23,0.28);
+    }
+    .grid-pattern::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(96,165,250,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(96,165,250,0.08) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: radial-gradient(circle at center, rgba(0,0,0,1), rgba(0,0,0,0.08));
+      pointer-events: none;
+    }
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(59,130,246,0.25), rgba(59,130,246,0.08));
+      color: white;
+      border-color: rgba(96,165,250,0.32);
+      transform: translateX(4px);
+    }
+    .page {
+      display: none;
+      animation: fadeUp .45s ease;
+    }
+    .page.active {
+      display: block;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero-glow {
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.16), 0 0 40px rgba(59,130,246,0.12), inset 0 0 30px rgba(34,197,94,0.05);
+    }
+    .signal-light {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      opacity: 0.22;
+      transition: all .35s ease;
+      box-shadow: 0 0 0 rgba(255,255,255,0);
+    }
+    .signal-light.on.red {
+      opacity: 1;
+      background: #EF4444;
+      box-shadow: 0 0 18px rgba(239,68,68,.75);
+    }
+    .signal-light.on.yellow {
+      opacity: 1;
+      background: #facc15;
+      box-shadow: 0 0 18px rgba(250,204,21,.75);
+    }
+    .signal-light.on.green {
+      opacity: 1;
+      background: #22C55E;
+      box-shadow: 0 0 18px rgba(34,197,94,.75);
+    }
+    .signal-light.red { background: rgba(239,68,68,.35); }
+    .signal-light.yellow { background: rgba(250,204,21,.28); }
+    .signal-light.green { background: rgba(34,197,94,.35); }
+
+    .kpi-ring {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(#22C55E var(--percent), rgba(255,255,255,0.08) 0);
+    }
+    .kpi-ring::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid rgba(148,163,184,.10);
+    }
+    .kpi-ring span {
+      position: relative;
+      z-index: 1;
+      font-weight: 800;
+      font-size: 18px;
+      color: #f8fafc;
+    }
+
+    .heat-cell {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      min-height: 92px;
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .heat-cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(2,6,23,.32);
+    }
+
+    .flow-line {
+      position: relative;
+      overflow: hidden;
+    }
+    .flow-line::after {
+      content: "";
+      position: absolute;
+      left: -30%;
+      top: 0;
+      width: 30%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(59,130,246,.4), transparent);
+      animation: flowMove 2.6s linear infinite;
+    }
+    @keyframes flowMove {
+      from { left: -30%; }
+      to { left: 110%; }
+    }
+
+    .loader-bar {
+      overflow: hidden;
+      position: relative;
+    }
+    .loader-bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 35%;
+      background: linear-gradient(90deg, transparent, rgba(34,197,94,.9), transparent);
+      animation: pulseMove 1.4s linear infinite;
+    }
+    @keyframes pulseMove {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(340%); }
+    }
+
+    .city-node {
+      position: relative;
+    }
+    .city-node::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 999px;
+      border: 1px solid rgba(59,130,246,.25);
+      animation: radarPulse 2.8s ease-out infinite;
+    }
+    @keyframes radarPulse {
+      0% { transform: scale(.9); opacity: .7; }
+      100% { transform: scale(1.45); opacity: 0; }
+    }
+
+    .mini-bar span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      transition: width .5s ease, background .3s ease;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    .hide-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 999px; }
+    .hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+    .mobile-nav-open {
+      transform: translateX(0) !important;
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body>
+  <div id="app" class="h-full w-full overflow-auto">
+   <div class="flex h-full w-full"><!-- Sidebar -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 max-w-[85%] -translate-x-full lg:translate-x-0 transition-transform duration-300 glass border-r border-white/10">
+     <div class="h-full flex flex-col">
+      <div class="p-6 border-b border-white/10">
+       <div class="flex items-center gap-3">
+        <div class="relative city-node w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center"><i data-lucide="traffic-cone" class="w-5 h-5 text-blue-300"></i>
+        </div>
+        <div>
+         <div class="brand-font text-2xl font-bold tracking-[0.18em] text-slate-100">
+          FlowSync
+         </div>
+         <div class="text-xs uppercase tracking-[0.25em] text-slate-400">
+          Urban Traffic AI
+         </div>
+        </div>
+       </div>
+      </div>
+      <nav class="flex-1 overflow-auto hide-scrollbar p-4 space-y-2" aria-label="Main navigation"><button class="nav-item active w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="home"> <i data-lucide="home" class="w-4 h-4"></i><span>Home</span> </button> <button class="nav-item w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="dashboard"> <i data-lucide="layout-dashboard" class="w-4 h-4"></i><span>Dashboard</span> </button> <button class="nav-item w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="signals"> <i data-lucide="traffic-cone" class="w-4 h-4"></i><span>Signal Control</span> </button> <button class="nav-item w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="simulation"> <i data-lucide="play-circle" class="w-4 h-4"></i><span>Simulation</span> </button> <button class="nav-item w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="integration"> <i data-lucide="git-branch-plus" class="w-4 h-4"></i><span>Data Integration</span> </button> <button class="nav-item w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="analytics"> <i data-lucide="bar-chart-3" class="w-4 h-4"></i><span>Analytics</span> </button> <button class="nav-item w-full text-left flex items-center gap-3 rounded-2xl px-4 py-3 border border-transparent text-slate-300 transition" data-page="about"> <i data-lucide="info" class="w-4 h-4"></i><span>About</span> </button>
+      </nav>
+      <div class="p-4 border-t border-white/10">
+       <div class="panel rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-2"><span class="text-xs uppercase tracking-[0.2em] text-slate-400">Optimization Engine</span> <span id="engineStatus" class="text-xs font-semibold text-emerald-400">Active</span>
+        </div>
+        <div class="loader-bar h-2 rounded-full bg-white/10"></div>
+        <div class="mt-3 text-sm text-slate-300">
+         Signal plans are recalculated every few seconds using live multi-signal inputs.
+        </div>
+       </div>
+      </div>
+     </div>
+    </aside><!-- Main Content -->
+    <div class="flex-1 min-w-0 lg:ml-0">
+     <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
+      <div class="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+       <div class="flex items-center gap-3"><button id="menuBtn" class="lg:hidden inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Open menu"> <i data-lucide="menu" class="w-5 h-5"></i> </button>
+        <div>
+         <h1 id="topTitle" class="brand-font text-2xl sm:text-3xl font-bold tracking-[0.14em] text-slate-50">FlowSync Control Center</h1>
+         <p class="text-sm text-slate-400">Dynamic multi-signal traffic optimization for modern smart cities</p>
+        </div>
+       </div>
+       <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-300"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span> <span>System Live</span>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-right">
+         <div class="text-xs uppercase tracking-[0.2em] text-slate-400">
+          City Grid Sync
+         </div>
+         <div id="systemTime" class="text-sm font-semibold text-slate-100">
+          --:--:--
+         </div>
+        </div>
+       </div>
+      </div>
+     </header>
+     <main class="relative h-[calc(100%-73px)] w-full overflow-auto hide-scrollbar">
+      <div class="absolute inset-0 grid-pattern pointer-events-none"></div>
+      <div class="relative px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-8"><!-- HOME -->
+       <section id="page-home" class="page active">
+        <div class="grid xl:grid-cols-[1.3fr_0.9fr] gap-6">
+         <div class="glass hero-glow rounded-[28px] p-6 sm:p-8 lg:p-10 overflow-hidden relative">
+          <div class="absolute top-0 right-0 w-56 h-56 rounded-full bg-blue-500/10 blur-3xl"></div>
+          <div class="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-emerald-500/10 blur-3xl"></div>
+          <div class="relative">
+           <div class="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-blue-200"><i data-lucide="radar" class="w-4 h-4"></i> Adaptive urban orchestration
+           </div>
+           <h2 id="heroTitle" class="brand-font mt-6 text-4xl sm:text-5xl lg:text-6xl leading-none font-bold tracking-[0.1em] text-white">Smarter Signals. Faster Cities.</h2>
+           <p id="heroSubtitle" class="mt-6 max-w-2xl text-base sm:text-lg text-slate-300 leading-8">FlowSync reduces congestion by coordinating signal timing with live traffic density, pedestrian demand, emergency priority, and time-based traffic patterns—so streets move with city intelligence instead of fixed cycles.</p>
+           <div class="mt-8 flex flex-col sm:flex-row gap-4"><button class="goto-page inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white px-6 py-4 font-semibold transition shadow-[0_10px_30px_rgba(59,130,246,.25)] focus:outline-none focus:ring-2 focus:ring-blue-300" data-target="dashboard"> <i data-lucide="activity" class="w-4 h-4"></i> <span>View Live Dashboard</span> </button> <button class="goto-page inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-100 px-6 py-4 font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-300" data-target="simulation"> <i data-lucide="play" class="w-4 h-4"></i> <span>Simulate Traffic</span> </button>
+           </div>
+           <div class="mt-10 grid sm:grid-cols-3 gap-4">
+            <div class="panel rounded-2xl p-5">
+             <div class="text-sm text-slate-400">
+              Intersections Managed
+             </div>
+             <div class="mt-2 text-3xl font-extrabold text-slate-50">
+              48
+             </div>
+             <div class="mt-1 text-sm text-emerald-400">
+              +12 adaptive clusters
+             </div>
+            </div>
+            <div class="panel rounded-2xl p-5">
+             <div class="text-sm text-slate-400">
+              Average Delay Reduction
+             </div>
+             <div class="mt-2 text-3xl font-extrabold text-slate-50">
+              27%
+             </div>
+             <div class="mt-1 text-sm text-blue-300">
+              Optimized in real time
+             </div>
+            </div>
+            <div class="panel rounded-2xl p-5">
+             <div class="text-sm text-slate-400">
+              Emergency Response Gain
+             </div>
+             <div class="mt-2 text-3xl font-extrabold text-slate-50">
+              41%
+             </div>
+             <div class="mt-1 text-sm text-red-300">
+              Priority corridor clearing
+             </div>
+            </div>
+           </div>
+          </div>
+         </div>
+         <div class="space-y-6">
+          <div class="glass rounded-[28px] p-6">
+           <div class="flex items-center justify-between">
+            <div>
+             <div class="text-xs uppercase tracking-[0.24em] text-slate-400">
+              Urban Challenge
+             </div>
+             <h3 class="brand-font text-2xl font-bold tracking-[0.1em] text-white mt-2">Why fixed signals fail</h3>
+            </div><i data-lucide="alert-triangle" class="w-6 h-6 text-red-400"></i>
+           </div>
+           <div class="mt-5 space-y-4">
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+             <div class="font-semibold text-slate-100">
+              Uneven traffic demand
+             </div>
+             <p class="mt-1 text-sm text-slate-400">Rush hour surges and off-peak dips make static plans inefficient and waste green time.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+             <div class="font-semibold text-slate-100">
+              Emergency interruptions
+             </div>
+             <p class="mt-1 text-sm text-slate-400">Priority vehicles need immediate corridor clearance without collapsing neighboring junction flow.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+             <div class="font-semibold text-slate-100">
+              Pedestrian variability
+             </div>
+             <p class="mt-1 text-sm text-slate-400">Crosswalk demand changes throughout the day and must be balanced safely with vehicle movement.</p>
+            </div>
+           </div>
+          </div>
+          <div class="glass rounded-[28px] p-6">
+           <div class="flex items-center justify-between">
+            <div>
+             <div class="text-xs uppercase tracking-[0.24em] text-slate-400">
+              Signal Intelligence
+             </div>
+             <h3 class="brand-font text-2xl font-bold tracking-[0.1em] text-white mt-2">Live control snapshot</h3>
+            </div><i data-lucide="cpu" class="w-6 h-6 text-blue-300"></i>
+           </div>
+           <div class="mt-5 space-y-4">
+            <div class="flex items-center justify-between rounded-2xl bg-slate-950/50 border border-white/10 px-4 py-3"><span class="text-slate-300">North Ave &amp; 5th</span> <span class="text-emerald-400 font-semibold">Flow Stable</span>
+            </div>
+            <div class="flex items-center justify-between rounded-2xl bg-slate-950/50 border border-white/10 px-4 py-3"><span class="text-slate-300">Metro Junction</span> <span class="text-blue-300 font-semibold">Retiming</span>
+            </div>
+            <div class="flex items-center justify-between rounded-2xl bg-slate-950/50 border border-white/10 px-4 py-3"><span class="text-slate-300">Hospital Corridor</span> <span class="text-red-400 font-semibold">Emergency Priority</span>
+            </div>
+           </div>
+          </div>
+         </div>
+        </div>
+       </section><!-- DASHBOARD -->
+       <section id="page-dashboard" class="page">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+         <div>
+          <div class="text-xs uppercase tracking-[0.28em] text-blue-300">
+           Realtime Monitoring
+          </div>
+          <h2 id="dashboardTitle" class="brand-font text-3xl sm:text-4xl font-bold tracking-[0.1em] text-white mt-2">Live Traffic Command Center</h2>
+          <p class="text-slate-400 mt-2 max-w-3xl">Monitor densities, signal states, emergency disruptions, and spatial congestion in a single control surface.</p>
+         </div>
+         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="panel rounded-2xl px-4 py-3">
+           <div class="text-xs text-slate-400">
+            Active Nodes
+           </div>
+           <div class="text-2xl font-bold text-white">
+            48
+           </div>
+          </div>
+          <div class="panel rounded-2xl px-4 py-3">
+           <div class="text-xs text-slate-400">
+            Emergency Alerts
+           </div>
+           <div id="alertCount" class="text-2xl font-bold text-red-400">
+            1
+           </div>
+          </div>
+          <div class="panel rounded-2xl px-4 py-3">
+           <div class="text-xs text-slate-400">
+            Avg Queue
+           </div>
+           <div id="avgQueue" class="text-2xl font-bold text-blue-300">
+            23
+           </div>
+          </div>
+          <div class="panel rounded-2xl px-4 py-3">
+           <div class="text-xs text-slate-400">
+            Optimization Score
+           </div>
+           <div id="optScore" class="text-2xl font-bold text-emerald-400">
+            92
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="grid 2xl:grid-cols-[1.1fr_0.9fr] gap-6">
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-5 sm:p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Traffic Density per Intersection</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Live sample feed</span>
+           </div>
+           <div class="h-72 sm:h-80">
+            <canvas id="densityChart" aria-label="Traffic density chart"></canvas>
+           </div>
+          </div>
+          <div class="panel rounded-[26px] p-5 sm:p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Congestion Heatmap</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">By district</span>
+           </div>
+           <div id="heatmapGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+          </div>
+         </div>
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-5 sm:p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Signal Timing Status</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Adaptive cycles</span>
+           </div>
+           <div id="signalStatusList" class="space-y-3"></div>
+          </div>
+          <div class="panel rounded-[26px] p-5 sm:p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Emergency Vehicle Detection Alerts</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Priority routing</span>
+           </div>
+           <div id="alertList" class="space-y-3"></div>
+          </div>
+         </div>
+        </div>
+       </section><!-- SIGNAL CONTROL -->
+       <section id="page-signals" class="page">
+        <div class="mb-6">
+         <div class="text-xs uppercase tracking-[0.28em] text-blue-300">
+          Adaptive Junction Logic
+         </div>
+         <h2 id="signalTitle" class="brand-font text-3xl sm:text-4xl font-bold tracking-[0.1em] text-white mt-2">Adaptive Signal Control</h2>
+         <p class="text-slate-400 mt-2 max-w-3xl">Change cycle lengths, review AI suggestions, and test manual override behavior on a live intersection model.</p>
+        </div>
+        <div class="grid xl:grid-cols-[0.95fr_1.05fr] gap-6">
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">Current Signal Durations</h3><span class="text-sm text-emerald-400">Auto-sync enabled</span>
+           </div>
+           <div class="mt-6 space-y-5">
+            <div>
+             <div class="flex items-center justify-between mb-2"><label for="redRange" class="text-sm text-slate-300">Red Phase</label> <span id="redVal" class="font-semibold text-red-400">42s</span>
+             </div><input id="redRange" type="range" min="20" max="90" value="42" class="w-full accent-red-500">
+            </div>
+            <div>
+             <div class="flex items-center justify-between mb-2"><label for="yellowRange" class="text-sm text-slate-300">Yellow Phase</label> <span id="yellowVal" class="font-semibold text-yellow-300">6s</span>
+             </div><input id="yellowRange" type="range" min="3" max="12" value="6" class="w-full accent-yellow-400">
+            </div>
+            <div>
+             <div class="flex items-center justify-between mb-2"><label for="greenRange" class="text-sm text-slate-300">Green Phase</label> <span id="greenVal" class="font-semibold text-emerald-400">34s</span>
+             </div><input id="greenRange" type="range" min="15" max="90" value="34" class="w-full accent-emerald-500">
+            </div>
+           </div>
+           <div class="mt-6 grid grid-cols-3 gap-3"><button id="presetBalanced" class="rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 text-sm font-semibold text-slate-100 transition focus:outline-none focus:ring-2 focus:ring-blue-300">Balanced</button> <button id="presetPeak" class="rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 text-sm font-semibold text-slate-100 transition focus:outline-none focus:ring-2 focus:ring-blue-300">Peak Flow</button> <button id="presetEmergency" class="rounded-2xl bg-red-500/10 hover:bg-red-500/20 border border-red-400/20 px-4 py-3 text-sm font-semibold text-red-300 transition focus:outline-none focus:ring-2 focus:ring-red-300">Emergency</button>
+           </div>
+          </div>
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">Manual Override Simulation</h3>
+            <div class="inline-flex items-center gap-2 text-sm text-slate-300"><span>Override</span> <button id="overrideToggle" class="relative h-7 w-14 rounded-full bg-white/10 border border-white/10 transition focus:outline-none focus:ring-2 focus:ring-blue-300" aria-label="Toggle manual override"> <span id="overrideKnob" class="absolute top-1 left-1 h-5 w-5 rounded-full bg-slate-200 transition"></span> </button>
+            </div>
+           </div>
+           <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3"><button id="forceRed" class="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-red-300 font-semibold disabled:opacity-40" disabled>Force Red</button> <button id="forceYellow" class="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 px-4 py-3 text-yellow-300 font-semibold disabled:opacity-40" disabled>Force Yellow</button> <button id="forceGreen" class="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-emerald-300 font-semibold disabled:opacity-40" disabled>Force Green</button>
+           </div>
+           <div class="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-slate-400">
+            Manual mode pauses AI retiming so operators can test corridor behavior during incidents, maintenance, or priority dispatch events.
+           </div>
+          </div>
+         </div>
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">Live Intersection State</h3><span id="phaseBadge" class="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-300">Green Active</span>
+           </div>
+           <div class="mt-6 grid lg:grid-cols-[0.42fr_0.58fr] gap-6 items-center">
+            <div class="rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
+             <div class="mx-auto w-24 rounded-[26px] bg-slate-900 border border-white/10 p-4 flex flex-col items-center gap-4">
+              <div id="sigRed" class="signal-light red"></div>
+              <div id="sigYellow" class="signal-light yellow"></div>
+              <div id="sigGreen" class="signal-light green on"></div>
+             </div>
+             <div class="mt-4 text-center">
+              <div class="text-xs uppercase tracking-[0.22em] text-slate-500">
+               Current countdown
+              </div>
+              <div id="phaseCountdown" class="brand-font mt-1 text-4xl font-bold tracking-[0.14em] text-white">
+               34s
+              </div>
+             </div>
+            </div>
+            <div class="space-y-4">
+             <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-sm text-slate-400">
+               AI-based optimization suggestion
+              </div>
+              <div id="aiSuggestion" class="mt-2 text-lg font-semibold text-white">
+               Extend green phase by 8s to clear eastbound surge.
+              </div>
+             </div>
+             <div class="grid sm:grid-cols-3 gap-3">
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+               <div class="text-xs text-slate-400">
+                Vehicle density
+               </div>
+               <div id="vehicleDensityIndicator" class="mt-2 text-2xl font-bold text-blue-300">
+                71%
+               </div>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+               <div class="text-xs text-slate-400">
+                Pedestrian load
+               </div>
+               <div id="pedFlowIndicator" class="mt-2 text-2xl font-bold text-slate-100">
+                38%
+               </div>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+               <div class="text-xs text-slate-400">
+                Priority state
+               </div>
+               <div id="priorityIndicator" class="mt-2 text-2xl font-bold text-emerald-400">
+                Normal
+               </div>
+              </div>
+             </div>
+             <div class="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100">
+              The engine blends density, approach imbalance, pedestrian requests, emergency routing, and schedule-based logic before applying each phase adjustment.
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Corridor Impact Preview</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Projected queues</span>
+           </div>
+           <div id="corridorBars" class="space-y-4"></div>
+          </div>
+         </div>
+        </div>
+       </section><!-- SIMULATION -->
+       <section id="page-simulation" class="page">
+        <div class="mb-6">
+         <div class="text-xs uppercase tracking-[0.28em] text-blue-300">
+          Scenario Engine
+         </div>
+         <h2 id="simulationTitle" class="brand-font text-3xl sm:text-4xl font-bold tracking-[0.1em] text-white mt-2">Scenario Simulator</h2>
+         <p class="text-slate-400 mt-2 max-w-3xl">Switch between urban traffic situations and watch the platform adapt with changing priority, cycle plans, and congestion response.</p>
+        </div>
+        <div class="grid xl:grid-cols-[0.8fr_1.2fr] gap-6">
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-6">
+           <h3 class="text-lg font-semibold text-white">Select a traffic scenario</h3>
+           <div class="mt-5 grid gap-3"><button class="scenario-btn rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300" data-scenario="peak">
+             <div class="font-semibold text-white">
+              Peak Hour
+             </div>
+             <div class="text-sm text-slate-400">
+              Heavy commuter pressure across major corridors
+             </div></button> <button class="scenario-btn rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300" data-scenario="offpeak">
+             <div class="font-semibold text-white">
+              Non-Peak
+             </div>
+             <div class="text-sm text-slate-400">
+              Lower demand with shorter queue buildup
+             </div></button> <button class="scenario-btn rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300" data-scenario="accident">
+             <div class="font-semibold text-white">
+              Accident Scenario
+             </div>
+             <div class="text-sm text-slate-400">
+              Localized obstruction causing reroute stress
+             </div></button> <button class="scenario-btn rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300" data-scenario="emergency">
+             <div class="font-semibold text-white">
+              Emergency Vehicle Passage
+             </div>
+             <div class="text-sm text-slate-400">
+              Priority corridor opens to accelerate response
+             </div></button>
+           </div>
+          </div>
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">Simulation Status</h3><span id="simStatusBadge" class="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-sm text-blue-200">Peak Hour Running</span>
+           </div>
+           <div class="mt-4 space-y-4">
+            <div>
+             <div class="flex items-center justify-between text-sm mb-2"><span class="text-slate-400">Adaptive response progress</span> <span id="simProgressText" class="text-white font-semibold">67%</span>
+             </div>
+             <div class="h-3 rounded-full bg-white/10 overflow-hidden">
+              <div id="simProgressBar" class="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style="width:67%"></div>
+             </div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+             <div class="text-sm text-slate-400">
+              Current adaptation summary
+             </div>
+             <div id="simSummary" class="mt-2 text-white font-semibold">
+              Main arterial green windows extended while side street cycles are compressed.
+             </div>
+            </div>
+           </div>
+          </div>
+         </div>
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Real-time signal adaptation</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Animated response</span>
+           </div>
+           <div id="simRoadGrid" class="grid md:grid-cols-3 gap-4"></div>
+          </div>
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Scenario impact trend</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Live trendline</span>
+           </div>
+           <div class="h-72 sm:h-80">
+            <canvas id="simulationChart"></canvas>
+           </div>
+          </div>
+         </div>
+        </div>
+       </section><!-- INTEGRATION -->
+       <section id="page-integration" class="page">
+        <div class="mb-6">
+         <div class="text-xs uppercase tracking-[0.28em] text-blue-300">
+          Connected Inputs
+         </div>
+         <h2 class="brand-font text-3xl sm:text-4xl font-bold tracking-[0.1em] text-white mt-2">Data Integration Pipeline</h2>
+         <p class="text-slate-400 mt-2 max-w-3xl">FlowSync fuses citywide streams into a common decision engine that continuously updates intersection control logic.</p>
+        </div>
+        <div class="panel rounded-[30px] p-6 sm:p-8">
+         <div class="grid lg:grid-cols-[1fr_auto_1fr_auto_1fr] gap-6 items-center">
+          <div class="space-y-4">
+           <div class="flow-line rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center gap-3">
+             <div class="w-11 h-11 rounded-2xl bg-blue-500/15 flex items-center justify-center border border-blue-400/20"><i data-lucide="camera" class="w-5 h-5 text-blue-300"></i>
+             </div>
+             <div>
+              <div class="font-semibold text-white">
+               Traffic Cameras
+              </div>
+              <div class="text-sm text-slate-400">
+               Lane occupancy, queue visuals
+              </div>
+             </div>
+            </div>
+           </div>
+           <div class="flow-line rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center gap-3">
+             <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 flex items-center justify-center border border-emerald-400/20"><i data-lucide="radio-tower" class="w-5 h-5 text-emerald-300"></i>
+             </div>
+             <div>
+              <div class="font-semibold text-white">
+               IoT Sensors
+              </div>
+              <div class="text-sm text-slate-400">
+               Loop counts, pedestrian demand
+              </div>
+             </div>
+            </div>
+           </div>
+           <div class="flow-line rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center gap-3">
+             <div class="w-11 h-11 rounded-2xl bg-sky-500/15 flex items-center justify-center border border-sky-400/20"><i data-lucide="map-pinned" class="w-5 h-5 text-sky-300"></i>
+             </div>
+             <div>
+              <div class="font-semibold text-white">
+               GPS Vehicle Data
+              </div>
+              <div class="text-sm text-slate-400">
+               Probe speed and route traces
+              </div>
+             </div>
+            </div>
+           </div>
+           <div class="flow-line rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center gap-3">
+             <div class="w-11 h-11 rounded-2xl bg-violet-500/15 flex items-center justify-center border border-violet-400/20"><i data-lucide="bus" class="w-5 h-5 text-violet-300"></i>
+             </div>
+             <div>
+              <div class="font-semibold text-white">
+               Public Transport Systems
+              </div>
+              <div class="text-sm text-slate-400">
+               Bus arrival timing and priority
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="hidden lg:flex justify-center"><i data-lucide="arrow-right" class="w-10 h-10 text-blue-300/70"></i>
+          </div>
+          <div class="rounded-[28px] border border-blue-400/20 bg-blue-500/10 p-6">
+           <div class="w-16 h-16 rounded-3xl bg-blue-500/15 border border-blue-400/20 flex items-center justify-center mx-auto"><i data-lucide="cpu" class="w-8 h-8 text-blue-200"></i>
+           </div>
+           <h3 class="brand-font text-center text-2xl font-bold tracking-[0.1em] text-white mt-5">Fusion Engine</h3>
+           <p class="text-center text-slate-300 mt-3 leading-7">Data streams are normalized, time-aligned, scored for confidence, and passed into a corridor-level optimization model for decisioning.</p>
+           <div class="mt-5 grid grid-cols-2 gap-3">
+            <div class="rounded-2xl bg-slate-950/35 border border-white/10 p-4 text-center">
+             <div class="text-xs text-slate-400">
+              Refresh interval
+             </div>
+             <div class="text-xl font-bold text-white">
+              3s
+             </div>
+            </div>
+            <div class="rounded-2xl bg-slate-950/35 border border-white/10 p-4 text-center">
+             <div class="text-xs text-slate-400">
+              Input confidence
+             </div>
+             <div class="text-xl font-bold text-emerald-400">
+              96%
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="hidden lg:flex justify-center"><i data-lucide="arrow-right" class="w-10 h-10 text-emerald-300/70"></i>
+          </div>
+          <div class="space-y-4">
+           <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-center gap-3"><i data-lucide="traffic-cone" class="w-5 h-5 text-emerald-300"></i>
+             <div class="font-semibold text-white">
+              Signal Plan Generation
+             </div>
+            </div>
+            <p class="mt-3 text-sm text-slate-400">Computes green splits, offsets, and priority windows across connected intersections.</p>
+           </div>
+           <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-center gap-3"><i data-lucide="bell-ring" class="w-5 h-5 text-red-300"></i>
+             <div class="font-semibold text-white">
+              Incident Alerts
+             </div>
+            </div>
+            <p class="mt-3 text-sm text-slate-400">Flags anomalies, queue spikes, and emergency route interventions for operators.</p>
+           </div>
+           <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="flex items-center gap-3"><i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-300"></i>
+             <div class="font-semibold text-white">
+              Insight Outputs
+             </div>
+            </div>
+            <p class="mt-3 text-sm text-slate-400">Feeds KPI tracking, bottleneck diagnostics, and strategic planning dashboards.</p>
+           </div>
+          </div>
+         </div>
+        </div>
+       </section><!-- ANALYTICS -->
+       <section id="page-analytics" class="page">
+        <div class="mb-6">
+         <div class="text-xs uppercase tracking-[0.28em] text-blue-300">
+          Optimization Outcomes
+         </div>
+         <h2 id="analyticsTitle" class="brand-font text-3xl sm:text-4xl font-bold tracking-[0.1em] text-white mt-2">Performance Insights</h2>
+         <p class="text-slate-400 mt-2 max-w-3xl">Track operational gains from dynamic signal strategies and identify where the network still needs intervention.</p>
+        </div>
+        <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+         <div class="panel rounded-[26px] p-6 flex items-center gap-5">
+          <div class="kpi-ring" style="--percent: 73%;"><span>27%</span>
+          </div>
+          <div>
+           <div class="text-sm text-slate-400">
+            Avg waiting time reduction
+           </div>
+           <div class="mt-1 text-lg font-bold text-white">
+            -2.8 min/intersection
+           </div>
+          </div>
+         </div>
+         <div class="panel rounded-[26px] p-6 flex items-center gap-5">
+          <div class="kpi-ring" style="--percent: 81%; background: conic-gradient(#3B82F6 var(--percent), rgba(255,255,255,0.08) 0);"><span>34%</span>
+          </div>
+          <div>
+           <div class="text-sm text-slate-400">
+            Traffic flow improvement
+           </div>
+           <div class="mt-1 text-lg font-bold text-white">
+            Higher corridor throughput
+           </div>
+          </div>
+         </div>
+         <div class="panel rounded-[26px] p-6 flex items-center gap-5">
+          <div class="kpi-ring" style="--percent: 64%; background: conic-gradient(#EF4444 var(--percent), rgba(255,255,255,0.08) 0);"><span>6</span>
+          </div>
+          <div>
+           <div class="text-sm text-slate-400">
+            Bottlenecks detected
+           </div>
+           <div class="mt-1 text-lg font-bold text-white">
+            2 critical, 4 moderate
+           </div>
+          </div>
+         </div>
+         <div class="panel rounded-[26px] p-6 flex items-center gap-5">
+          <div class="kpi-ring" style="--percent: 88%; background: conic-gradient(#22C55E var(--percent), rgba(255,255,255,0.08) 0);"><span>91</span>
+          </div>
+          <div>
+           <div class="text-sm text-slate-400">
+            Network efficiency score
+           </div>
+           <div class="mt-1 text-lg font-bold text-white">
+            Resilient under variability
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="grid 2xl:grid-cols-[1.05fr_0.95fr] gap-6">
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Flow Improvement Trend</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">7-day sample</span>
+           </div>
+           <div class="h-80">
+            <canvas id="analyticsChart"></canvas>
+           </div>
+          </div>
+         </div>
+         <div class="space-y-6">
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Bottleneck Detection</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">Priority ranking</span>
+           </div>
+           <div id="bottleneckList" class="space-y-4"></div>
+          </div>
+          <div class="panel rounded-[26px] p-6">
+           <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Operational Insight</h3><span class="text-xs uppercase tracking-[0.22em] text-slate-400">AI summary</span>
+           </div>
+           <div class="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-5 text-slate-100 leading-7">
+            Dynamic retiming is producing the biggest gains on commuter corridors between 07:00–09:30 and 17:00–19:00, while incident-heavy zones benefit most from route-priority intervention and shorter yellow recovery windows.
+           </div>
+          </div>
+         </div>
+        </div>
+       </section><!-- ABOUT -->
+       <section id="page-about" class="page">
+        <div class="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
+         <div class="panel rounded-[30px] p-6 sm:p-8">
+          <div class="text-xs uppercase tracking-[0.28em] text-blue-300">
+           Platform Overview
+          </div>
+          <h2 id="aboutTitle" class="brand-font text-3xl sm:text-4xl font-bold tracking-[0.1em] text-white mt-2">About FlowSync</h2>
+          <p class="mt-4 text-slate-300 leading-8">FlowSync is a smart city traffic optimization framework designed to replace rigid timing plans with adaptive signal decisions that respond to what streets actually need, second by second.</p>
+          <div class="mt-8 space-y-4">
+           <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="font-semibold text-white">
+             System architecture
+            </div>
+            <p class="mt-2 text-sm text-slate-400">A layered model collects live roadway signals, interprets them with a decision engine, and applies optimized timing plans across intersection clusters.</p>
+           </div>
+           <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="font-semibold text-white">
+             Smart city value
+            </div>
+            <p class="mt-2 text-sm text-slate-400">Faster journeys, safer pedestrian crossings, reliable emergency access, and better public transport progression.</p>
+           </div>
+           <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="font-semibold text-white">
+             Sustainability impact
+            </div>
+            <p class="mt-2 text-sm text-slate-400">Reduced idling lowers fuel waste and emissions while improving the efficiency of existing road infrastructure.</p>
+           </div>
+          </div>
+         </div>
+         <div class="space-y-6">
+          <div class="panel rounded-[30px] p-6 sm:p-8">
+           <div class="flex items-center justify-between">
+            <h3 class="text-xl font-semibold text-white">Framework Layers</h3><i data-lucide="layers-3" class="w-6 h-6 text-blue-300"></i>
+           </div>
+           <div class="mt-6 grid md:grid-cols-2 gap-4">
+            <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+             <div class="text-xs uppercase tracking-[0.2em] text-slate-500">
+              Layer 01
+             </div>
+             <div class="mt-2 font-semibold text-white">
+              Sensing
+             </div>
+             <p class="mt-2 text-sm text-slate-400">Cameras, loops, GPS traces, pedestrian calls, and public transport feeds.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+             <div class="text-xs uppercase tracking-[0.2em] text-slate-500">
+              Layer 02
+             </div>
+             <div class="mt-2 font-semibold text-white">
+              Fusion
+             </div>
+             <p class="mt-2 text-sm text-slate-400">Signal cleaning, conflict resolution, and confidence scoring across sources.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+             <div class="text-xs uppercase tracking-[0.2em] text-slate-500">
+              Layer 03
+             </div>
+             <div class="mt-2 font-semibold text-white">
+              Optimization
+             </div>
+             <p class="mt-2 text-sm text-slate-400">Dynamic phase split tuning, offset alignment, and emergency preemption planning.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+             <div class="text-xs uppercase tracking-[0.2em] text-slate-500">
+              Layer 04
+             </div>
+             <div class="mt-2 font-semibold text-white">
+              Operator Interface
+             </div>
+             <p class="mt-2 text-sm text-slate-400">Monitoring dashboards, manual overrides, KPI review, and scenario simulation.</p>
+            </div>
+           </div>
+          </div>
+          <div class="panel rounded-[30px] p-6 sm:p-8">
+           <div class="flex items-center justify-between">
+            <h3 class="text-xl font-semibold text-white">Why it matters</h3><i data-lucide="leaf" class="w-6 h-6 text-emerald-300"></i>
+           </div>
+           <div class="mt-4 text-slate-300 leading-8">
+            As cities grow, the cost of congestion rises across productivity, energy, emergency response, and quality of life. FlowSync helps cities use intelligence—not just more asphalt—to move people more efficiently and sustainably.
+           </div>
+          </div>
+         </div>
+        </div>
+       </section>
+      </div>
+     </main>
+    </div>
+   </div><!-- Mobile overlay -->
+   <div id="mobileOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+  </div>
+  <script>
+    const defaultConfig = {
+      background_color: "#1F2937",
+      surface_color: "#111827",
+      text_color: "#E5EEF8",
+      primary_action_color: "#3B82F6",
+      secondary_action_color: "#22C55E",
+      font_family: "Rajdhani",
+      font_size: 16,
+      hero_title: "Smarter Signals. Faster Cities.",
+      hero_subtitle: "FlowSync reduces congestion by coordinating signal timing with live traffic density, pedestrian demand, emergency priority, and time-based traffic patterns—so streets move with city intelligence instead of fixed cycles.",
+      dashboard_title: "Live Traffic Command Center",
+      signal_title: "Adaptive Signal Control",
+      simulation_title: "Scenario Simulator",
+      analytics_title: "Performance Insights",
+      about_title: "About FlowSync"
+    };
+
+    const state = {
+      activePage: "home",
+      mobileNavOpen: false,
+      intersections: [
+        { name: "North Ave & 5th", density: 72, signal: "green", red: 42, yellow: 6, green: 34, queue: 28 },
+        { name: "Metro Junction", density: 84, signal: "red", red: 50, yellow: 5, green: 28, queue: 35 },
+        { name: "Harbor Loop", density: 49, signal: "green", red: 33, yellow: 4, green: 37, queue: 17 },
+        { name: "Central Square", density: 67, signal: "yellow", red: 40, yellow: 6, green: 30, queue: 26 },
+        { name: "Airport Link", density: 58, signal: "green", red: 31, yellow: 5, green: 41, queue: 20 },
+        { name: "Hospital Corridor", density: 91, signal: "green", red: 20, yellow: 4, green: 56, queue: 42 }
+      ],
+      districts: [
+        { name: "Downtown", level: 88 },
+        { name: "Civic Core", level: 62 },
+        { name: "Midtown", level: 71 },
+        { name: "River East", level: 44 },
+        { name: "Industrial", level: 55 },
+        { name: "University", level: 67 },
+        { name: "Old Town", level: 39 },
+        { name: "Transit Hub", level: 81 }
+      ],
+      alerts: [
+        { zone: "Hospital Corridor", type: "Emergency vehicle approaching", severity: "high", eta: "00:52" },
+        { zone: "Central Square", type: "Pedestrian surge detected", severity: "medium", eta: "01:40" }
+      ],
+      override: false,
+      forcedSignal: null,
+      phase: "green",
+      countdown: 34,
+      simulationScenario: "peak",
+      simulationProgress: 67,
+      simTrend: [56, 61, 64, 68, 72, 75, 79],
+      flowTrend: [18, 21, 25, 24, 29, 31, 34]
+    };
+
+    const refs = {};
+
+    function qs(id) {
+      return document.getElementById(id);
+    }
+
+    function initElementSdk() {
+      if (!window.elementSdk) return;
+
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (config) => {
+          const merged = { ...defaultConfig, ...config };
+
+          document.body.style.background =
+            `radial-gradient(circle at top left, rgba(59,130,246,0.22), transparent 28%), radial-gradient(circle at bottom right, rgba(34,197,94,0.14), transparent 24%), linear-gradient(135deg, #111827 0%, ${merged.background_color} 45%, #0b1220 100%)`;
+
+          qs("heroTitle").textContent = merged.hero_title;
+          qs("heroSubtitle").textContent = merged.hero_subtitle;
+          qs("dashboardTitle").textContent = merged.dashboard_title;
+          qs("signalTitle").textContent = merged.signal_title;
+          qs("simulationTitle").textContent = merged.simulation_title;
+          qs("analyticsTitle").textContent = merged.analytics_title;
+          qs("aboutTitle").textContent = merged.about_title;
+
+          document.querySelectorAll(".brand-font").forEach(el => {
+            el.style.fontFamily = `${merged.font_family}, "Rajdhani", sans-serif`;
+          });
+          document.querySelectorAll("body, p, span, div, button, input, label, h3").forEach(el => {
+            el.style.color = el.classList.contains("text-red-400") || el.classList.contains("text-red-300") ||
+                             el.classList.contains("text-emerald-400") || el.classList.contains("text-emerald-300") ||
+                             el.classList.contains("text-blue-300") || el.classList.contains("text-blue-200") ||
+                             el.classList.contains("text-yellow-300")
+                             ? ""
+                             : merged.text_color;
+          });
+
+          document.querySelectorAll(".panel").forEach(el => {
+            el.style.background = `linear-gradient(180deg, ${hexToRgba(merged.surface_color, 0.88)}, rgba(15,23,42,0.82))`;
+          });
+
+          document.querySelectorAll(".goto-page").forEach((el, index) => {
+            if (index === 0) {
+              el.style.background = merged.primary_action_color;
+            } else {
+              el.style.borderColor = hexToRgba(merged.text_color, 0.16);
+            }
+          });
+
+          document.documentElement.style.fontSize = `${merged.font_size}px`;
+        },
+        mapToCapabilities: (config) => {
+          return {
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (value) => window.elementSdk.setConfig({ background_color: value })
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (value) => window.elementSdk.setConfig({ surface_color: value })
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => window.elementSdk.setConfig({ text_color: value })
+              },
+              {
+                get: () => config.primary_action_color || defaultConfig.primary_action_color,
+                set: (value) => window.elementSdk.setConfig({ primary_action_color: value })
+              },
+              {
+                get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+                set: (value) => window.elementSdk.setConfig({ secondary_action_color: value })
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => window.elementSdk.setConfig({ font_family: value })
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => window.elementSdk.setConfig({ font_size: value })
+            }
+          };
+        },
+        mapToEditPanelValues: (config) => {
+          const merged = { ...defaultConfig, ...config };
+          return new Map([
+            ["hero_title", merged.hero_title],
+            ["hero_subtitle", merged.hero_subtitle],
+            ["dashboard_title", merged.dashboard_title],
+            ["signal_title", merged.signal_title],
+            ["simulation_title", merged.simulation_title],
+            ["analytics_title", merged.analytics_title],
+            ["about_title", merged.about_title]
+          ]);
+        }
+      });
+    }
+
+    function hexToRgba(hex, alpha) {
+      const normalized = hex.replace("#", "");
+      const bigint = parseInt(normalized.length === 3
+        ? normalized.split("").map(c => c + c).join("")
+        : normalized, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function setupNav() {
+      const navItems = document.querySelectorAll(".nav-item");
+      const pages = document.querySelectorAll(".page");
+      const gotoButtons = document.querySelectorAll(".goto-page");
+
+      function activatePage(pageId) {
+        state.activePage = pageId;
+        navItems.forEach(btn => btn.classList.toggle("active", btn.dataset.page === pageId));
+        pages.forEach(page => page.classList.toggle("active", page.id === `page-${pageId}`));
+        const labels = {
+          home: "FlowSync Control Center",
+          dashboard: "FlowSync Live Dashboard",
+          signals: "FlowSync Signal Control",
+          simulation: "FlowSync Simulation Studio",
+          integration: "FlowSync Data Integration",
+          analytics: "FlowSync Analytics",
+          about: "FlowSync Framework Overview"
+        };
+        qs("topTitle").textContent = labels[pageId] || "FlowSync";
+        closeMobileNav();
+      }
+
+      navItems.forEach(btn => {
+        btn.addEventListener("click", () => activatePage(btn.dataset.page));
+      });
+
+      gotoButtons.forEach(btn => {
+        btn.addEventListener("click", () => activatePage(btn.dataset.target));
+      });
+    }
+
+    function setupMobileNav() {
+      const sidebar = qs("sidebar");
+      const overlay = qs("mobileOverlay");
+      qs("menuBtn").addEventListener("click", () => {
+        state.mobileNavOpen = true;
+        sidebar.classList.add("mobile-nav-open");
+        overlay.classList.remove("hidden");
+      });
+      overlay.addEventListener("click", closeMobileNav);
+    }
+
+    function closeMobileNav() {
+      state.mobileNavOpen = false;
+      qs("sidebar").classList.remove("mobile-nav-open");
+      qs("mobileOverlay").classList.add("hidden");
+    }
+
+    function initCharts() {
+      const chartTextColor = "#cbd5e1";
+      const gridColor = "rgba(148,163,184,0.12)";
+
+      refs.densityChart = new Chart(qs("densityChart"), {
+        type: "bar",
+        data: {
+          labels: state.intersections.map(i => i.name),
+          datasets: [{
+            label: "Vehicle Density",
+            data: state.intersections.map(i => i.density),
+            borderRadius: 12,
+            backgroundColor: [
+              "rgba(59,130,246,0.88)",
+              "rgba(239,68,68,0.85)",
+              "rgba(34,197,94,0.85)",
+              "rgba(250,204,21,0.82)",
+              "rgba(96,165,250,0.86)",
+              "rgba(239,68,68,0.95)"
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: chartTextColor } }
+          },
+          scales: {
+            x: {
+              ticks: { color: chartTextColor, maxRotation: 0, minRotation: 0 },
+              grid: { color: gridColor }
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { color: chartTextColor },
+              grid: { color: gridColor }
+            }
+          }
+        }
+      });
+
+      refs.simulationChart = new Chart(qs("simulationChart"), {
+        type: "line",
+        data: {
+          labels: ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+          datasets: [{
+            label: "Signal Adaptation Efficiency",
+            data: state.simTrend,
+            tension: 0.35,
+            borderWidth: 3,
+            borderColor: "#22C55E",
+            pointBackgroundColor: "#3B82F6",
+            fill: true,
+            backgroundColor: "rgba(34,197,94,0.12)"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: chartTextColor } }
+          },
+          scales: {
+            x: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
+            y: { beginAtZero: true, max: 100, ticks: { color: chartTextColor }, grid: { color: gridColor } }
+          }
+        }
+      });
+
+      refs.analyticsChart = new Chart(qs("analyticsChart"), {
+        type: "line",
+        data: {
+          labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+          datasets: [
+            {
+              label: "Traffic Flow Improvement %",
+              data: state.flowTrend,
+              tension: 0.35,
+              borderColor: "#3B82F6",
+              pointBackgroundColor: "#3B82F6",
+              borderWidth: 3,
+              fill: true,
+              backgroundColor: "rgba(59,130,246,0.12)"
+            },
+            {
+              label: "Waiting Time Reduction %",
+              data: [12, 16, 19, 18, 23, 26, 27],
+              tension: 0.35,
+              borderColor: "#22C55E",
+              pointBackgroundColor: "#22C55E",
+              borderWidth: 3,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: chartTextColor } }
+          },
+          scales: {
+            x: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
+            y: { beginAtZero: true, max: 40, ticks: { color: chartTextColor }, grid: { color: gridColor } }
+          }
+        }
+      });
+    }
+
+    function renderHeatmap() {
+      const grid = qs("heatmapGrid");
+      grid.innerHTML = "";
+      state.districts.forEach(d => {
+        const cell = document.createElement("div");
+        const color = getHeatColor(d.level);
+        cell.className = "heat-cell p-4";
+        cell.style.background = `linear-gradient(135deg, ${color}, rgba(15,23,42,0.92))`;
+        cell.innerHTML = `
+          <div class="text-xs uppercase tracking-[0.18em] text-white/70">${d.name}</div>
+          <div class="mt-3 text-3xl font-extrabold text-white">${d.level}%</div>
+          <div class="mt-1 text-sm text-white/80">${d.level > 75 ? "Heavy congestion" : d.level > 50 ? "Moderate pressure" : "Stable flow"}</div>
+        `;
+        grid.appendChild(cell);
+      });
+    }
+
+    function getHeatColor(level) {
+      if (level >= 80) return "rgba(239,68,68,0.78)";
+      if (level >= 60) return "rgba(245,158,11,0.65)";
+      if (level >= 40) return "rgba(59,130,246,0.55)";
+      return "rgba(34,197,94,0.55)";
+    }
+
+    function renderSignalStatus() {
+      const list = qs("signalStatusList");
+      list.innerHTML = "";
+      state.intersections.forEach(item => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "rounded-2xl border border-white/10 bg-white/5 p-4";
+        wrapper.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-semibold text-white">${item.name}</div>
+              <div class="text-sm text-slate-400 mt-1">R ${item.red}s · Y ${item.yellow}s · G ${item.green}s</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <span class="signal-light red ${item.signal === "red" ? "on" : ""}"></span>
+                <span class="signal-light yellow ${item.signal === "yellow" ? "on" : ""}"></span>
+                <span class="signal-light green ${item.signal === "green" ? "on" : ""}"></span>
+              </div>
+              <span class="text-sm font-semibold ${item.signal === "red" ? "text-red-400" : item.signal === "yellow" ? "text-yellow-300" : "text-emerald-400"}">${capitalize(item.signal)}</span>
+            </div>
+          </div>
+        `;
+        list.appendChild(wrapper);
+      });
+    }
+
+    function renderAlerts() {
+      const list = qs("alertList");
+      list.innerHTML = "";
+      state.alerts.forEach(alert => {
+        const tone = alert.severity === "high"
+          ? "border-red-400/20 bg-red-500/10 text-red-100"
+          : "border-blue-400/20 bg-blue-500/10 text-blue-100";
+        const icon = alert.severity === "high" ? "siren" : "footprints";
+        const item = document.createElement("div");
+        item.className = `rounded-2xl border p-4 ${tone}`;
+        item.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-slate-950/30 border border-white/10 flex items-center justify-center">
+                <i data-lucide="${icon}" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="font-semibold">${alert.type}</div>
+                <div class="text-sm opacity-80 mt-1">${alert.zone}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs uppercase tracking-[0.18em] opacity-75">ETA</div>
+              <div class="font-bold">${alert.eta}</div>
+            </div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+      lucide.createIcons();
+      qs("alertCount").textContent = state.alerts.filter(a => a.severity === "high").length;
+    }
+
+    function renderCorridorBars() {
+      const bars = [
+        { label: "Northbound Corridor", value: 68, color: "#3B82F6" },
+        { label: "Eastbound Arterial", value: 82, color: "#22C55E" },
+        { label: "Transit Priority Lane", value: 57, color: "#facc15" },
+        { label: "Hospital Route", value: 91, color: "#EF4444" }
+      ];
+      const container = qs("corridorBars");
+      container.innerHTML = "";
+      bars.forEach(item => {
+        const row = document.createElement("div");
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-sm mb-2">
+            <span class="text-slate-300">${item.label}</span>
+            <span class="font-semibold text-white">${item.value}%</span>
+          </div>
+          <div class="mini-bar h-3 rounded-full bg-white/10 overflow-hidden">
+            <span style="width:${item.value}%; background:${item.color};"></span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderSimulationRoadGrid() {
+      const configs = {
+        peak: {
+          roads: [
+            ["North Axis", 88, "green", "Extended green for commuter surge"],
+            ["Central Link", 76, "yellow", "Cross traffic balanced"],
+            ["South Ring", 69, "red", "Queue holds while arterial clears"]
+          ],
+          summary: "Main arterial green windows extended while side street cycles are compressed.",
+          badge: "Peak Hour Running"
+        },
+        offpeak: {
+          roads: [
+            ["North Axis", 35, "green", "Short balanced cycles"],
+            ["Central Link", 28, "green", "Pedestrian timing preserved"],
+            ["South Ring", 24, "yellow", "Light demand rotation"]
+          ],
+          summary: "Cycle lengths shrink to reduce idle time and unnecessary red hold.",
+          badge: "Non-Peak Running"
+        },
+        accident: {
+          roads: [
+            ["North Axis", 82, "red", "Reroute pressure rising"],
+            ["Central Link", 91, "green", "Diversion corridor prioritized"],
+            ["South Ring", 74, "yellow", "Recovery timing active"]
+          ],
+          summary: "Signals reroute flow away from obstruction while protecting spillback.",
+          badge: "Accident Response"
+        },
+        emergency: {
+          roads: [
+            ["North Axis", 63, "red", "Cross traffic paused"],
+            ["Central Link", 95, "green", "Priority corridor open"],
+            ["South Ring", 48, "red", "Preemption lock enabled"]
+          ],
+          summary: "Emergency path receives a rolling green wave to minimize delay.",
+          badge: "Emergency Priority"
+        }
+      };
+
+      const current = configs[state.simulationScenario];
+      qs("simSummary").textContent = current.summary;
+      qs("simStatusBadge").textContent = current.badge;
+
+      const grid = qs("simRoadGrid");
+      grid.innerHTML = "";
+      current.roads.forEach(road => {
+        const [name, load, signal, note] = road;
+        const card = document.createElement("div");
+        card.className = "rounded-[24px] border border-white/10 bg-white/5 p-5";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="font-semibold text-white">${name}</div>
+            <div class="flex items-center gap-2">
+              <span class="signal-light red ${signal === "red" ? "on" : ""}"></span>
+              <span class="signal-light yellow ${signal === "yellow" ? "on" : ""}"></span>
+              <span class="signal-light green ${signal === "green" ? "on" : ""}"></span>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="flex items-center justify-between text-sm mb-2">
+              <span class="text-slate-400">Traffic load</span>
+              <span class="font-semibold text-white">${load}%</span>
+            </div>
+            <div class="h-3 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full rounded-full" style="width:${load}%; background:${load > 80 ? "#EF4444" : load > 50 ? "#3B82F6" : "#22C55E"}"></div>
+            </div>
+          </div>
+          <div class="mt-4 text-sm text-slate-400">${note}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderBottlenecks() {
+      const items = [
+        { name: "Metro Junction", level: "Critical", impact: 92, note: "Dense merge conflict during peak entry" },
+        { name: "Transit Hub", level: "Critical", impact: 89, note: "Bus priority and pedestrian overlap" },
+        { name: "Central Square", level: "Moderate", impact: 71, note: "Balanced but unstable midday waves" },
+        { name: "Airport Link", level: "Moderate", impact: 63, note: "Periodic bursts from terminal arrivals" }
+      ];
+      const list = qs("bottleneckList");
+      list.innerHTML = "";
+      items.forEach(item => {
+        const tone = item.level === "Critical" ? "text-red-300 border-red-400/20 bg-red-500/10" : "text-blue-200 border-blue-400/20 bg-blue-500/10";
+        const row = document.createElement("div");
+        row.className = `rounded-2xl border p-4 ${tone}`;
+        row.innerHTML = `
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="font-semibold">${item.name}</div>
+              <div class="text-sm opacity-80 mt-1">${item.note}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs uppercase tracking-[0.18em] opacity-70">${item.level}</div>
+              <div class="text-xl font-bold">${item.impact}%</div>
+            </div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function setupSignalControls() {
+      const redRange = qs("redRange");
+      const yellowRange = qs("yellowRange");
+      const greenRange = qs("greenRange");
+
+      function syncValues() {
+        qs("redVal").textContent = `${redRange.value}s`;
+        qs("yellowVal").textContent = `${yellowRange.value}s`;
+        qs("greenVal").textContent = `${greenRange.value}s`;
+        if (!state.override) {
+          state.intersections[0].red = Number(redRange.value);
+          state.intersections[0].yellow = Number(yellowRange.value);
+          state.intersections[0].green = Number(greenRange.value);
+        }
+        renderSignalStatus();
+      }
+
+      [redRange, yellowRange, greenRange].forEach(input => input.addEventListener("input", syncValues));
+
+      qs("presetBalanced").addEventListener("click", () => setPhasePreset(42, 6, 34, "Balanced cycle applied for mixed demand conditions."));
+      qs("presetPeak").addEventListener("click", () => setPhasePreset(50, 5, 48, "Peak-hour pattern extends arterial green for higher throughput."));
+      qs("presetEmergency").addEventListener("click", () => setPhasePreset(20, 4, 56, "Emergency corridor green wave applied to clear response path."));
+
+      qs("overrideToggle").addEventListener("click", () => {
+        state.override = !state.override;
+        updateOverrideUI();
+      });
+
+      qs("forceRed").addEventListener("click", () => forceSignal("red"));
+      qs("forceYellow").addEventListener("click", () => forceSignal("yellow"));
+      qs("forceGreen").addEventListener("click", () => forceSignal("green"));
+
+      syncValues();
+      updateOverrideUI();
+    }
+
+    function setPhasePreset(red, yellow, green, suggestion) {
+      qs("redRange").value = red;
+      qs("yellowRange").value = yellow;
+      qs("greenRange").value = green;
+      qs("redVal").textContent = `${red}s`;
+      qs("yellowVal").textContent = `${yellow}s`;
+      qs("greenVal").textContent = `${green}s`;
+      state.intersections[0].red = red;
+      state.intersections[0].yellow = yellow;
+      state.intersections[0].green = green;
+      qs("aiSuggestion").textContent = suggestion;
+      renderSignalStatus();
+    }
+
+    function updateOverrideUI() {
+      const knob = qs("overrideKnob");
+      const toggle = qs("overrideToggle");
+      ["forceRed", "forceYellow", "forceGreen"].forEach(id => {
+        qs(id).disabled = !state.override;
+      });
+
+      if (state.override) {
+        toggle.classList.add("bg-blue-500/20", "border-blue-400/30");
+        knob.style.transform = "translateX(28px)";
+        knob.style.background = "#60A5FA";
+        qs("priorityIndicator").textContent = "Manual";
+        qs("priorityIndicator").className = "mt-2 text-2xl font-bold text-blue-300";
+      } else {
+        toggle.classList.remove("bg-blue-500/20", "border-blue-400/30");
+        knob.style.transform = "translateX(0)";
+        knob.style.background = "#e2e8f0";
+        state.forcedSignal = null;
+        qs("priorityIndicator").textContent = "Normal";
+        qs("priorityIndicator").className = "mt-2 text-2xl font-bold text-emerald-400";
+      }
+    }
+
+    function forceSignal(signal) {
+      if (!state.override) return;
+      state.forcedSignal = signal;
+      state.phase = signal;
+      state.countdown = signal === "green" ? Number(qs("greenRange").value) : signal === "yellow" ? Number(qs("yellowRange").value) : Number(qs("redRange").value);
+      updateMainSignal();
+      qs("aiSuggestion").textContent = `Manual override engaged: ${capitalize(signal)} phase locked by operator simulation.`;
+    }
+
+    function updateMainSignal() {
+      const redOn = state.phase === "red";
+      const yellowOn = state.phase === "yellow";
+      const greenOn = state.phase === "green";
+
+      qs("sigRed").className = `signal-light red ${redOn ? "on" : ""}`;
+      qs("sigYellow").className = `signal-light yellow ${yellowOn ? "on" : ""}`;
+      qs("sigGreen").className = `signal-light green ${greenOn ? "on" : ""}`;
+      qs("phaseCountdown").textContent = `${state.countdown}s`;
+
+      const badge = qs("phaseBadge");
+      if (redOn) {
+        badge.textContent = "Red Active";
+        badge.className = "rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-sm text-red-300";
+      } else if (yellowOn) {
+        badge.textContent = "Yellow Active";
+        badge.className = "rounded-full border border-yellow-400/20 bg-yellow-500/10 px-3 py-1 text-sm text-yellow-200";
+      } else {
+        badge.textContent = "Green Active";
+        badge.className = "rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-300";
+      }
+    }
+
+    function cycleSignalPhase() {
+      if (state.override && state.forcedSignal) {
+        state.countdown--;
+        if (state.countdown <= 0) {
+          state.countdown = state.phase === "green" ? Number(qs("greenRange").value) : state.phase === "yellow" ? Number(qs("yellowRange").value) : Number(qs("redRange").value);
+        }
+        updateMainSignal();
+        return;
+      }
+
+      state.countdown--;
+      if (state.countdown > 0) {
+        updateMainSignal();
+        return;
+      }
+
+      if (state.phase === "green") {
+        state.phase = "yellow";
+        state.countdown = Number(qs("yellowRange").value);
+      } else if (state.phase === "yellow") {
+        state.phase = "red";
+        state.countdown = Number(qs("redRange").value);
+      } else {
+        state.phase = "green";
+        state.countdown = Number(qs("greenRange").value);
+      }
+      updateMainSignal();
+    }
+
+    function setupScenarioButtons() {
+      document.querySelectorAll(".scenario-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.simulationScenario = btn.dataset.scenario;
+          applyScenario();
+        });
+      });
+      applyScenario();
+    }
+
+    function applyScenario() {
+      const scenarioMap = {
+        peak: {
+          progress: 67,
+          trend: [56, 61, 64, 68, 72, 75, 79],
+          suggestion: "Extend green phase by 8s to clear eastbound surge."
+        },
+        offpeak: {
+          progress: 42,
+          trend: [38, 41, 45, 47, 51, 49, 53],
+          suggestion: "Reduce cycle length to minimize off-peak idle delay."
+        },
+        accident: {
+          progress: 84,
+          trend: [63, 65, 69, 73, 77, 81, 86],
+          suggestion: "Reallocate offset timing to support detour corridor recovery."
+        },
+        emergency: {
+          progress: 93,
+          trend: [70, 74, 79, 84, 88, 92, 96],
+          suggestion: "Hold green wave across response corridor for emergency passage."
+        }
+      };
+
+      const current = scenarioMap[state.simulationScenario];
+      state.simulationProgress = current.progress;
+      state.simTrend = current.trend.slice();
+      qs("simProgressText").textContent = `${state.simulationProgress}%`;
+      qs("simProgressBar").style.width = `${state.simulationProgress}%`;
+      qs("aiSuggestion").textContent = current.suggestion;
+      renderSimulationRoadGrid();
+
+      refs.simulationChart.data.datasets[0].data = state.simTrend;
+      refs.simulationChart.update();
+    }
+
+    function updateRealtimeData() {
+      state.intersections = state.intersections.map(item => {
+        const variance = Math.floor(Math.random() * 13) - 6;
+        const density = clamp(item.density + variance, 25, 98);
+        const queue = clamp(item.queue + Math.floor(Math.random() * 9) - 4, 6, 48);
+        const signalRoll = Math.random();
+        const signal = signalRoll > 0.66 ? "green" : signalRoll > 0.33 ? "yellow" : "red";
+        return { ...item, density, queue, signal };
+      });
+
+      state.districts = state.districts.map(d => ({
+        ...d,
+        level: clamp(d.level + Math.floor(Math.random() * 11) - 5, 18, 95)
+      }));
+
+      if (Math.random() > 0.72) {
+        const emergencyZones = ["Hospital Corridor", "Airport Link", "Metro Junction", "Transit Hub"];
+        const zone = emergencyZones[Math.floor(Math.random() * emergencyZones.length)];
+        state.alerts[0] = {
+          zone,
+          type: Math.random() > 0.5 ? "Emergency vehicle approaching" : "Priority vehicle corridor request",
+          severity: "high",
+          eta: `00:${String(Math.floor(Math.random() * 50) + 10).padStart(2, "0")}`
+        };
+      }
+
+      if (Math.random() > 0.6) {
+        state.alerts[1] = {
+          zone: ["Central Square", "University", "Downtown"][Math.floor(Math.random() * 3)],
+          type: Math.random() > 0.5 ? "Pedestrian surge detected" : "Crosswalk demand rising",
+          severity: "medium",
+          eta: `01:${String(Math.floor(Math.random() * 40) + 10).padStart(2, "0")}`
+        };
+      }
+
+      const avgQueue = Math.round(state.intersections.reduce((sum, i) => sum + i.queue, 0) / state.intersections.length);
+      const optScore = clamp(100 - Math.round((state.districts.reduce((sum, d) => sum + d.level, 0) / state.districts.length) / 3), 72, 98);
+
+      qs("avgQueue").textContent = avgQueue;
+      qs("optScore").textContent = optScore;
+      qs("vehicleDensityIndicator").textContent = `${state.intersections[0].density}%`;
+      qs("pedFlowIndicator").textContent = `${clamp(Math.round(state.districts[2].level * 0.55), 12, 93)}%`;
+
+      refs.densityChart.data.datasets[0].data = state.intersections.map(i => i.density);
+      refs.densityChart.update();
+
+      renderHeatmap();
+      renderSignalStatus();
+      renderAlerts();
+    }
+
+    function updateSystemTime() {
+      const now = new Date();
+      qs("systemTime").textContent = now.toLocaleTimeString();
+    }
+
+    function animateEngineStatus() {
+      const labels = ["Active", "Learning", "Retiming", "Stable"];
+      let idx = 0;
+      setInterval(() => {
+        idx = (idx + 1) % labels.length;
+        qs("engineStatus").textContent = labels[idx];
+      }, 2600);
+    }
+
+    function startSimulationTicker() {
+      setInterval(() => {
+        state.simulationProgress = clamp(state.simulationProgress + (Math.random() > 0.5 ? 1 : -1), 35, 98);
+        qs("simProgressText").textContent = `${state.simulationProgress}%`;
+        qs("simProgressBar").style.width = `${state.simulationProgress}%`;
+
+        const nextVal = clamp(state.simTrend[state.simTrend.length - 1] + (Math.floor(Math.random() * 7) - 3), 30, 98);
+        state.simTrend.push(nextVal);
+        state.simTrend.shift();
+        refs.simulationChart.data.datasets[0].data = state.simTrend;
+        refs.simulationChart.update();
+      }, 2200);
+    }
+
+    function startAnalyticsTicker() {
+      setInterval(() => {
+        const nextFlow = clamp(state.flowTrend[state.flowTrend.length - 1] + (Math.floor(Math.random() * 5) - 2), 14, 37);
+        state.flowTrend.push(nextFlow);
+        state.flowTrend.shift();
+        refs.analyticsChart.data.datasets[0].data = state.flowTrend;
+        refs.analyticsChart.update();
+      }, 3200);
+    }
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function boot() {
+      initElementSdk();
+      setupNav();
+      setupMobileNav();
+      initCharts();
+      renderHeatmap();
+      renderSignalStatus();
+      renderAlerts();
+      renderCorridorBars();
+      renderSimulationRoadGrid();
+      renderBottlenecks();
+      setupSignalControls();
+      setupScenarioButtons();
+      updateMainSignal();
+      updateSystemTime();
+      animateEngineStatus();
+
+      setInterval(updateSystemTime, 1000);
+      setInterval(updateRealtimeData, 3000);
+      setInterval(cycleSignalPhase, 1000);
+      startSimulationTicker();
+      startAnalyticsTicker();
+
+      lucide.createIcons();
+
+      if (window.elementSdk && window.elementSdk.config) {
+        const merged = { ...defaultConfig, ...window.elementSdk.config };
+        qs("heroTitle").textContent = merged.hero_title;
+        qs("heroSubtitle").textContent = merged.hero_subtitle;
+        qs("dashboardTitle").textContent = merged.dashboard_title;
+        qs("signalTitle").textContent = merged.signal_title;
+        qs("simulationTitle").textContent = merged.simulation_title;
+        qs("analyticsTitle").textContent = merged.analytics_title;
+        qs("aboutTitle").textContent = merged.about_title;
+      }
+    }
+
+    boot();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e17411d01ff800d',t:'MTc3NDM3MTg2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
